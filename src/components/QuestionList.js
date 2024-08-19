@@ -1,38 +1,61 @@
-import React from "react";
+import React,{useState, useEffect} from "react";
+import QuestionItem from "./QuestionItem";
 
-function QuestionItem({ question, onDelete, onUpdateAnswer }) {
-  const { id, prompt, answers, correctIndex } = question;
+function QuestionList() {
 
-  const options = answers.map((answer, index) => (
-    <option key={index} value={index}>
-      {answer}
-    </option>
-  ));
+  const[quiz, setQuiz]=useState([])
 
-  const handleDelete = () => {
-    onDelete(id);
-  };
+useEffect(()=>{
+  fetch("http://localhost:4000/questions")
+  .then((res)=>res.json())
+  .then((data)=>{
+    setQuiz(data)
+  },[])
+})
 
-  const handleUpdateAnswer = (event) => {
-    const newCorrectIndex = parseInt(event.target.value, 10);
-    onUpdateAnswer(id, newCorrectIndex);
-  };
 
+function handleClickDelete(id){
+  fetch(`http://localhost:4000/questions/${id}`,{
+method: "DELETE",
+  })
+  .then((res)=>res.json())
+  .then(()=>{const updatedQuestions = quiz.filter((quiz) => quiz.id !== id);
+
+
+    setQuiz(updatedQuestions)
+  })
+}
+
+
+function handleAnswerChange(id, correctIndex) {
+  fetch(`http://localhost:4000/questions/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ correctIndex }),
+  })
+    .then((r) => r.json())
+    .then((updatedQuestion) => {
+      const updatedQuestions = quiz.map((quiz) => {
+        if (quiz.id === updatedQuestion.id) return updatedQuestion;
+        return quiz;
+      });
+      setQuiz(updatedQuestions);
+    });
+}
   return (
-    <li>
-      <h4>Question {id}</h4>
-      <h5>Prompt: {prompt}</h5>
-      <label>
-        Correct Answer:
-        <select value={correctIndex} onChange={handleUpdateAnswer}>
-          {options}
-        </select>
-      </label>
-      <button onClick={handleDelete}>Delete Question</button>
-    </li>
+    <section>
+      <h1>Quiz Questions</h1>
+      <ul>
+      {quiz.map((quiz) => (
+        <QuestionItem key={quiz.id} question={quiz} onDeleteClick={handleClickDelete} onAnswerchange={handleAnswerChange}/>
+      ))}
+    </ul>
+    </section>
   );
 }
 
-export default QuestionItem;
+export default QuestionList;
 
 
