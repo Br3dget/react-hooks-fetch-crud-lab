@@ -1,57 +1,52 @@
-import React,{useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import QuestionItem from "./QuestionItem";
 
 function QuestionList() {
+  const [questions, setQuestions] = useState([]);
 
-  const[quiz, setQuiz]=useState([])
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch("http://localhost:4000/questions");
+        if (!response.ok) {
+          throw new Error("Failed to fetch questions");
+        }
+        const data = await response.json();
+        setQuestions(data);
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      }
+    };
 
-useEffect(()=>{
-  fetch("http://localhost:4000/questions")
-  .then((res)=>res.json())
-  .then((data)=>{
-    setQuiz(data)
-  },[])
-})
+    fetchQuestions();
+  }, []); // Empty dependency array ensures useEffect runs only on mount
 
-
-function handleClickDelete(id){
-  fetch(`http://localhost:4000/questions/${id}`,{
-method: "DELETE",
-  })
-  .then((res)=>res.json())
-  .then(()=>{const updatedQuestions = quiz.filter((quiz) => quiz.id !== id);
-
-
-    setQuiz(updatedQuestions)
-  })
-}
-
-
-function handleAnswerChange(id, correctIndex) {
-  fetch(`http://localhost:4000/questions/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ correctIndex }),
-  })
-    .then((r) => r.json())
-    .then((updatedQuestion) => {
-      const updatedQuestions = quiz.map((quiz) => {
-        if (quiz.id === updatedQuestion.id) return updatedQuestion;
-        return quiz;
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:4000/questions/${id}`, {
+        method: "DELETE",
       });
-      setQuiz(updatedQuestions);
-    });
-}
+      if (!response.ok) {
+        throw new Error("Failed to delete question");
+      }
+      setQuestions(questions.filter((question) => question.id !== id));
+    } catch (error) {
+      console.error("Error deleting question:", error);
+    }
+  };
+
   return (
     <section>
       <h1>Quiz Questions</h1>
       <ul>
-      {quiz.map((quiz) => (
-        <QuestionItem key={quiz.id} question={quiz} onDeleteClick={handleClickDelete} onAnswerchange={handleAnswerChange}/>
-      ))}
-    </ul>
+        {questions.map((question) => (
+          <QuestionItem
+            key={question.id}
+            question={question}
+            onDelete={() => handleDelete(question.id)}
+          />
+        ))}
+      </ul>
     </section>
   );
 }
